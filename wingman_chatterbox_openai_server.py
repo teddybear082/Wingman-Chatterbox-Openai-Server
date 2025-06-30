@@ -45,7 +45,7 @@ if "cuda" in DEVICE:
     if not torch.cuda.is_available():
         DEVICE = "cpu"
 if "mps" in DEVICE:
-    if not torch.mps.is_available():
+    if not torch.backends.mps.is_available():
         DEVICE = "cpu"
 
 # Load the Chatterbox model
@@ -63,6 +63,7 @@ def set_seed(seed: int):
     random.seed(seed)
     np.random.seed(seed)
 
+# To do: investigate if there is some way to leave the model partially in CPU to avoid having to completely reload model each generation
 def handle_vram_change(desired_device: str):
     global chatterbox_model, CURRENT_DEVICE
     if torch.cuda.is_available():
@@ -141,7 +142,6 @@ def openai_tts():
         if args.low_vram and "cuda" in DEVICE:
             with torch.cuda.amp.autocast():
                 wav_tensor = chatterbox_model.generate(
-                    #text,
                     sentence,
                     audio_prompt_path=audio_prompt_path,
                     exaggeration=args.exaggeration,
@@ -154,7 +154,6 @@ def openai_tts():
                 audio_chunks.append(wav_tensor)
         else:
             wav_tensor = chatterbox_model.generate(
-            #text,
             sentence,
             audio_prompt_path=audio_prompt_path,
             exaggeration=args.exaggeration,
@@ -169,8 +168,6 @@ def openai_tts():
         final_audio = wav_tensor
     else:
         final_audio = torch.cat(audio_chunks, dim=-1)
-    # Prepare waveform and define MIME types
-    #waveform_cpu = wav_tensor.squeeze(0).cpu() # Get 1D tensor on CPU
     waveform_cpu = final_audio.squeeze(0).cpu()
     
     mimetypes = {
