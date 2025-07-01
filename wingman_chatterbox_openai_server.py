@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser(description="OpenAI-compatible TTS server for C
 
 # Server arguments
 parser.add_argument("--host", type=str, default="0.0.0.0", help="Host for the server.")
-parser.add_argument("--port", type=int, default=7860, help="Port for the server.")
+parser.add_argument("--port", type=int, default=5002, help="Port for the server.")
 parser.add_argument("--model-name", type=str, default="chatterbox-tts", help="Name of the model to report in API responses.")
 parser.add_argument("--debug", action="store_true", help="Run the server in debug mode.")
 parser.add_argument("--device", type=str, default="cpu", help="Device to run server on. Options: cpu, cuda, cuda:0, cuda:1, mps")
