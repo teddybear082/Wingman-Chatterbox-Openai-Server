@@ -12,15 +12,6 @@ import torchaudio
 # Set up Flask app
 app = Flask(__name__)
 
-# Determine the processing device
-#DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
-
-# Load the Chatterbox model
-#print("Loading Chatterbox TTS model...")
-#chatterbox_model = ChatterboxTTS.from_pretrained(DEVICE)
-#print(f"Model loaded successfully on {DEVICE}.")
-# Determine the processing device
-#DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 parser = argparse.ArgumentParser(description="OpenAI-compatible TTS server for Chatterbox.")
 
 # Server arguments
