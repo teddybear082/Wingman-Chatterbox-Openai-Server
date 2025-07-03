@@ -45,6 +45,8 @@ chatterbox_model = ChatterboxTTS.from_pretrained(DEVICE)
 print(f"Model loaded successfully on {DEVICE}.")
 CURRENT_DEVICE = DEVICE
 
+generation_count = 0
+
 def set_seed(seed: int):
     """Set random seeds for reproducibility."""
     torch.manual_seed(seed)
@@ -197,6 +199,13 @@ def openai_tts():
     buffer.seek(0)
     if args.low_vram and "cuda" in DEVICE:
         handle_vram_change("cpu")
+    # to prevent VRAM climbing infinitely, reset cuda cache after five generations
+    global generation_count
+    generation_count = generation_count + 1
+    if generation_count >= 5 and not args.low_vram and "cuda" in DEVICE:
+        generation_count = 0
+        torch.cuda.empty_cache()
+        gc.collect()
     return send_file(buffer, mimetype=mimetype)
 
 @app.route("/v1/models", methods=["GET"])
