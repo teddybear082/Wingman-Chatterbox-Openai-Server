@@ -199,7 +199,7 @@ def openai_tts():
     buffer.seek(0)
     if args.low_vram and "cuda" in DEVICE:
         handle_vram_change("cpu")
-    # to prevent VRAM climbing infinitely, reset cuda cache after five generations
+    # to prevent VRAM climbing infinitely, reset cuda cache after five generations, if low_vram mode is not active (low_vram already clears cuda)
     global generation_count
     generation_count = generation_count + 1
     if generation_count >= 5 and not args.low_vram and "cuda" in DEVICE:
