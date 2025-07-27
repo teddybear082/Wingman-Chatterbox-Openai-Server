@@ -34,6 +34,9 @@ set "args_stream="
 set /p stream_choice="Enable streaming mode? (y/n): "
 if /i "%stream_choice%"=="y" set "args_stream=--stream"
 
+:: Set model path argument (relative to this script's directory)
+set "args_model=--model_path %~dp0model\chatterbox_model"
+
 :: Activate virtual environment
 call "%~dp0venv\Scripts\activate.bat" || (
     echo Failed to activate virtual environment.
@@ -47,4 +50,4 @@ echo Access a test webpage by CTRL clicking this link after it loads: http://loc
 echo.
 
 :: Run the Python server
-python wingman_chatterbox_openai_server_stream.py !args_device! !args_lowvram! !args_exaggeration! !args_temperature! !args_stream!
+python wingman_chatterbox_openai_server_stream.py !args_model! !args_device! !args_lowvram! !args_exaggeration! !args_temperature! !args_stream!

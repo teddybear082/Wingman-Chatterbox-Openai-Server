@@ -22,6 +22,7 @@ parser.add_argument("--debug", action="store_true", help="Run the server in debu
 parser.add_argument("--device", type=str, default="cpu", help="Device to run server on. Options: cpu, cuda, cuda:0, cuda:1, mps")
 parser.add_argument("--low_vram", action=argparse.BooleanOptionalAction, default=False, help="Whether to unload model to cpu when not generating.")
 parser.add_argument("--stream", action=argparse.BooleanOptionalAction, default=False, help="Enable audio streaming sentence by sentence.")
+parser.add_argument("--model_path", type=str, default=None, help="Path to a local directory containing model checkpoints.")
 
 # Chatterbox generation arguments with reasonable defaults
 parser.add_argument("--exaggeration", type=float, default=0.5, help="Exaggeration level (0.5 is neutral).")
@@ -41,10 +42,23 @@ if "mps" in DEVICE:
     if not torch.backends.mps.is_available():
         DEVICE = "cpu"
 
+def load_chatterbox_tts_model(device):
+    try:
+        if args.model_path:
+            print(f"Attempting to load model from local path: {args.model_path}")
+            tts_model = ChatterboxTTS.from_local(ckpt_dir=args.model_path, device=device)
+        else:
+            print("Attempting to load model from pretrained Hugging Face hub.")
+            tts_model = ChatterboxTTS.from_pretrained(device=device)
+    except Exception as e:
+        print(f"Could not load Chatterbox model. Error: {e}. If loading from a model path, double check the path.")
+    print(f"Model loaded successfully on {device}.")
+    return tts_model
+
+
 # Load the Chatterbox model
 print(f"Loading Chatterbox TTS...")
-chatterbox_model = ChatterboxTTS.from_pretrained(DEVICE)
-print(f"Model loaded successfully on {DEVICE}.")
+chatterbox_model = load_chatterbox_tts_model(DEVICE)
 CURRENT_DEVICE = DEVICE
 
 generation_count = 0
@@ -66,7 +80,7 @@ def handle_vram_change(desired_device: str):
                 if chatterbox_model:
                     del chatterbox_model
                 gc.collect()
-                chatterbox_model = ChatterboxTTS.from_pretrained(desired_device)
+                chatterbox_model = load_chatterbox_tts_model(desired_device)#ChatterboxTTS.from_pretrained(desired_device)
                 CURRENT_DEVICE = desired_device
                 print(f"Switched ChatterboxTTS model to {desired_device}.")
         elif "cpu" in desired_device:
