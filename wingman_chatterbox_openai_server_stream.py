@@ -95,7 +95,7 @@ def _cleanup():
         print("CUDA cache cleared after 5 generations.")
 
 def split_sentences(input_text: str) -> list:
-    if len(input_text) <= 200:
+    if len(input_text) <= 150:
         return [input_text]
     return segmenter.segment(input_text)
 
@@ -120,7 +120,7 @@ def openai_tts():
     if not text:
         return jsonify({"error":"Missing input in request"}), 400
 
-    # --- Streaming Logic ---
+    # Streaming
     if stream:
         fmt = payload.get("response_format", "pcm").lower()
         
@@ -165,7 +165,7 @@ def openai_tts():
         mimetype = "audio/L16" if fmt == 'pcm' else "audio/mpeg"
         return Response(generate_stream(), mimetype=mimetype)
 
-    # --- Non-Streaming Logic ---
+    # Non-Streaming
     else:
         fmt = payload.get("response_format", "mp3").lower()
         print(f"Request: text='{text}', voice='{audio_prompt_path}', speed='{cfg_weight}', format='{fmt}'")

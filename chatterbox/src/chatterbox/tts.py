@@ -124,6 +124,7 @@ class ChatterboxTTS:
         self.device = device
         self.conds = conds
         self.watermarker = perth.PerthImplicitWatermarker()
+        self.cached_conds = {} # Keep track of already procecessed conds (with exaggeration) for lower latency
 
     @classmethod
     def from_local(cls, ckpt_dir, device) -> 'ChatterboxTTS':
@@ -180,6 +181,10 @@ class ChatterboxTTS:
         return cls.from_local(Path(local_path).parent, device)
 
     def prepare_conditionals(self, wav_fpath, exaggeration=0.5):
+        cached_voice = self.cached_conds.get(str(wav_fpath))
+        if cached_voice:
+            self.conds = cached_voice
+            return
         ## Load reference wav
         s3gen_ref_wav, _sr = librosa.load(wav_fpath, sr=S3GEN_SR)
 
@@ -204,6 +209,7 @@ class ChatterboxTTS:
             emotion_adv=exaggeration * torch.ones(1, 1, 1),
         ).to(device=self.device)
         self.conds = Conditionals(t3_cond, s3gen_ref_dict)
+        self.cached_conds[str(wav_fpath)] = self.conds
 
     def generate(
         self,
