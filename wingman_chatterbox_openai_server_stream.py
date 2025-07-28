@@ -55,10 +55,6 @@ def load_chatterbox_tts_model(device):
     except Exception as e:
         print(f"Could not load Chatterbox model. Error: {e}. If loading from a model path, double check the path.")
     print(f"Model loaded successfully on {device}.")
-    #global current_audio_prompt_path
-    # Redo conditionals so that they are ready
-    #if current_audio_prompt_path:
-        #tts_model.prepare_conditionals(wav_fpath=current_audio_prompt_path)
     return tts_model
 
 
@@ -107,6 +103,7 @@ def _cleanup():
     if args.low_vram and "cuda" in DEVICE:
         handle_vram_change("cpu")
 
+    # Even if low vram is off, clear cache after 5 generations to prevent VRAM usage from infinitely increasing
     global generation_count
     generation_count += 1
     if generation_count >= 5 and not args.low_vram and "cuda" in DEVICE:
@@ -179,7 +176,6 @@ def openai_tts():
                     
                     print(f"Streaming sentence: {sentence}")
                     # Always use same manual seed for consistency in generation
-                    #torch.manual_seed(12345)
                     set_seed(12345)
                     
                     wav_tensor = chatterbox_model.generate(
@@ -217,9 +213,12 @@ def openai_tts():
         sentences = split_sentences(text)
         audio_chunks = []
         for sentence in sentences:
+            # Always use same manual seed for consistency in generation
+            set_seed(12345)
+            
             wav_tensor = chatterbox_model.generate(
                 sentence,
-                audio_prompt_path=audio_prompt_path,
+                #audio_prompt_path=audio_prompt_path, # Not needed because we always get our conditionals first, either cached or fresh
                 exaggeration=args.exaggeration,
                 temperature=args.temperature,
                 cfg_weight=cfg_weight,
