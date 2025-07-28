@@ -33,6 +33,8 @@ parser.add_argument("--repetition-penalty", type=float, default=1.2, help="Repet
 
 args = parser.parse_args()
 segmenter = pysbd.Segmenter(language="en", clean=True)
+current_audio_prompt_path = None
+cached_conds = {}
 
 DEVICE = args.device
 if "cuda" in DEVICE:
@@ -53,6 +55,10 @@ def load_chatterbox_tts_model(device):
     except Exception as e:
         print(f"Could not load Chatterbox model. Error: {e}. If loading from a model path, double check the path.")
     print(f"Model loaded successfully on {device}.")
+    #global current_audio_prompt_path
+    # Redo conditionals so that they are ready
+    #if current_audio_prompt_path:
+        #tts_model.prepare_conditionals(wav_fpath=current_audio_prompt_path)
     return tts_model
 
 
@@ -83,6 +89,7 @@ def handle_vram_change(desired_device: str):
                 chatterbox_model = load_chatterbox_tts_model(desired_device)#ChatterboxTTS.from_pretrained(desired_device)
                 CURRENT_DEVICE = desired_device
                 print(f"Switched ChatterboxTTS model to {desired_device}.")
+
         elif "cpu" in desired_device:
             if "cpu" not in CURRENT_DEVICE:
                 del chatterbox_model
@@ -113,6 +120,19 @@ def split_sentences(input_text: str) -> list:
         return [input_text]
     return segmenter.segment(input_text)
 
+def get_voice_conds_for_audio_prompt(audio_prompt_path):
+    global chatterbox_model
+    # Check if voice conds already exist
+    voice_conds = cached_conds.get(str(audio_prompt_path))
+    # If not, add them to our cache
+    if not voice_conds:
+        print("Cached conditionals not found, generating new conditionals.")
+        chatterbox_model.prepare_conditionals(audio_prompt_path)
+        cached_conds[str(audio_prompt_path)] = chatterbox_model.conds
+    else:
+        print("Cached conditionals found; reusing.")
+        chatterbox_model.conds = voice_conds
+
 @app.route("/")
 def index():
     return render_template(
@@ -134,6 +154,12 @@ def openai_tts():
     if not text:
         return jsonify({"error":"Missing input in request"}), 400
 
+    # Prepare conditionals for new wav if needed, otherwise recycle conditionals
+    global current_audio_prompt_path
+    if audio_prompt_path != current_audio_prompt_path:
+        get_voice_conds_for_audio_prompt(audio_prompt_path)
+        current_audio_prompt_path = audio_prompt_path
+
     # Streaming
     if stream:
         fmt = payload.get("response_format", "pcm").lower()
@@ -152,9 +178,13 @@ def openai_tts():
                         continue
                     
                     print(f"Streaming sentence: {sentence}")
+                    # Always use same manual seed for consistency in generation
+                    #torch.manual_seed(12345)
+                    set_seed(12345)
+                    
                     wav_tensor = chatterbox_model.generate(
                         sentence,
-                        audio_prompt_path=audio_prompt_path,
+                        #audio_prompt_path=audio_prompt_path, # Not needed because we always get our conditionals first, either cached or fresh
                         exaggeration=args.exaggeration,
                         temperature=args.temperature,
                         cfg_weight=cfg_weight,
