@@ -153,7 +153,7 @@ def openai_tts():
 
     # Prepare conditionals for new wav if needed, otherwise recycle conditionals
     global current_audio_prompt_path
-    if audio_prompt_path != current_audio_prompt_path:
+    if audio_prompt_path != current_audio_prompt_path or args.low_vram:
         get_voice_conds_for_audio_prompt(audio_prompt_path)
         current_audio_prompt_path = audio_prompt_path
 
